@@ -20,7 +20,7 @@ test.describe('GameStore E2E Flow', () => {
     await expect(page.locator('nav')).toContainText('demouser');
 
     // 5. Navigate to Store
-    await page.click('nav >> text=STORE');
+    await page.click('nav a:text-is("STORE")');
     await expect(page).toHaveURL(/\/en\/store/);
 
     // 6. Search for a game
@@ -47,13 +47,15 @@ test.describe('GameStore E2E Flow', () => {
     await expect(page).toHaveURL(/\/en\/cart/);
     await expect(page.locator('h1')).toContainText('Your Shopping Cart');
     await expect(page.locator('text=Cyberpunk 2077')).toBeVisible();
-    await expect(page.locator('text=x1')).toBeVisible();
+    // The UI shows the quantity as a number between - and + buttons
+    // Use a more specific selector to avoid matching the cart count in Navbar
+    await expect(page.locator('main span:text-is("1")')).toBeVisible();
 
     // 11. Test quantity increment by adding again
     await page.goto('/en/game/1');
     await page.click('button:has-text("Add to Cart")');
     await page.goto('/en/cart');
-    await expect(page.locator('text=x2')).toBeVisible();
+    await expect(page.locator('main span:text-is("2")')).toBeVisible();
   });
 
   test('should switch language', async ({ page }) => {
@@ -62,8 +64,8 @@ test.describe('GameStore E2E Flow', () => {
     // Open language dropdown
     await page.click('button:has-text("LANG: en")');
     
-    // Click Indonesian
-    await page.click('button:has-text("Indonesian")');
+    // Click Indonesian (it's a Link, not a button)
+    await page.click('a:has-text("Indonesian")');
     
     // Check URL and content
     await expect(page).toHaveURL(/\/id\/home/);
