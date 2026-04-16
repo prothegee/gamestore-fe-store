@@ -19,9 +19,10 @@ bun run vitest watch
 ## Current Test Suites
 1.  **Cart Logic (`tests/cart.test.tsx`):**
     *   Verifies item addition and removal.
-    *   Tests authentication-based access control.
-    *   Validates quantity grouping logic.
+    *   Tests authentication-based access control and persistent storage (`localStorage`).
+    *   Validates quantity grouping and normalization logic.
     *   Ensures total price calculations are accurate.
+    *   **New:** Tests single-item addition to prevent double-increment bugs and ensures consistency during state transitions.
 2.  **I18n Translations (`tests/i18n.test.ts`):**
     *   Ensures key parity between English and Indonesian dictionaries.
     *   Verifies specific translation values.

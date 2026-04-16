@@ -4,7 +4,7 @@
 This project is a React-based Game Store frontend built with Next.js, mimicking the Steam Store aesthetic and functionality.
 
 ## Core Mandates
-- Port: 9007
+- Port: 9008
 - Mimics Steam Store UI
 - Fluid design for desktop & mobile
 - Support for multiple languages (en, id)
@@ -24,7 +24,8 @@ The application uses the following environment variables for service discovery:
 - Next.js 16 (App Router)
 - React 19
 - Tailwind CSS 4
-- Vitest for testing
+- Vitest for unit testing
+- Playwright for E2E testing
 - I18n with context-based dictionary
 
 ## Architecture
@@ -33,5 +34,5 @@ The application uses the following environment variables for service discovery:
 - `lib/api/`: Mock API services and localized dummy data
 - `lib/i18n/`: Internationalization logic and dictionaries
 - `lib/hooks/`: Custom hooks for state management (Cart, etc.)
-- `tests/`: Vitest test suite
+- `tests/`: Vitest and Playwright test suites
 - `docs/`: Technical documentation

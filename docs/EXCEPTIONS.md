@@ -47,7 +47,6 @@ The `eslint-plugin-react-hooks` rule `set-state-in-effect` flags `setState` call
 
 #### Affected Files
 - `lib/api/auth-context.tsx` — Restores user session from `localStorage` on mount.
-- `lib/hooks/useCart.tsx` — Loads saved cart from `localStorage` on mount.
 - `lib/i18n/i18n-context.tsx` — Syncs initial language preference from URL/cookie.
 
 #### Approach

@@ -28,7 +28,7 @@ The frontend communicates with five distinct backend services via environment-co
 
 ```mermaid
 graph LR
-    Frontend["GameStore Frontend (Port 9007)"]
+    Frontend["GameStore Frontend (Port 9008)"]
     
     Frontend ---> |"Auth/Profile"| AccountSvc["Account Service (9001)"]
     Frontend ---> |"Assets"| MediaSvc["Media Service (9002)"]
@@ -46,4 +46,4 @@ graph LR
 1.  **Server Proxy (proxy.ts):** Normalizes paths and manages the `_preferred-lang` cookie.
 2.  **I18n Engine:** Dictionary-based system synchronized with URL state.
 3.  **Asset Layer:** Uses `next/image` for high-performance localized asset rendering.
-4.  **State Management:** Custom hooks (e.g., `useCart`) for persistent commerce logic.
+4.  **State Management:** Custom hooks (e.g., `useCart`) for persistent commerce logic with multi-tab synchronization.

@@ -18,7 +18,7 @@ Once the server-rendered shell arrives in the browser, React takes over (hydrati
 - **Infinite Scroll:** Uses the `IntersectionObserver` API to detect when to fetch the next batch of games.
 - **Search & Filtering:** The debounced search logic and real-time state updates are CSR-driven.
 - **Language Switching:** The transition between `/en` and `/id` routes is managed by the Next.js router on the client.
-- **Shopping Cart:** Persistent storage in `localStorage` is accessible only on the client side.
+- **Shopping Cart:** Persistent storage in `localStorage` with multi-tab synchronization logic.
 - **Benefit:** Provides a fluid, "App-like" experience with no full-page reloads during catalog browsing.
 
 ## 3. SSG (Static Site Generation) & Optimization

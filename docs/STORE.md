@@ -16,6 +16,9 @@ The store allows browsing games, adding them to a cart, and completing a purchas
 - **Lazy Loading Efficiency:** Only 12 items are rendered initially; browser resources are conserved until the user scrolls.
 - **Search Efficiency:** Filtering is performed on the mock data layer before slicing, simulating server-side pagination.
 
-## Pricing
-- Discounts are handled in `GameCard` and `useCart`.
-- Final price calculation: `price * (1 - discount / 100)`.
+## Shopping Cart
+- **Persistent State:** Uses `LocalStorage` to save cart items, with unique keys per user (`cart_{userId}`).
+- **Syncing Logic:** Implements a custom `useCart` hook that synchronizes state across multiple tabs using the `storage` event and a local `cart-update` event.
+- **Robustness:** Side effects (persistence and event dispatching) are handled in a dedicated `useEffect` to ensure state purity and compatibility with React Strict Mode.
+- **Normalization:** Automatically ensures all items have a `quantity >= 1` and merges duplicates if detected during external syncs.
+- **Quantity Controls:** Supports incrementing, decrementing (auto-removes at 0), and direct removal.

@@ -42,7 +42,8 @@ The application uses a unified response standard: `{ ok: boolean, message: strin
 
 ## Helper Functions & Hooks
 1.  **useCart():**
-    *   State: `cartItems` (stored in `localStorage`).
+    *   State: `cartItems` (synchronized with `localStorage` via `cart_{userId}` key).
+    *   Logic: Pure state updates with asynchronous persistence and multi-tab synchronization using a dedicated `useEffect` and custom `cart-update` event.
 2.  **getGamesPaged(lang, page, limit, search):**
     *   Logic: Case-insensitive title/tag filtering.
     *   Simulation: 800ms `Promise` delay.

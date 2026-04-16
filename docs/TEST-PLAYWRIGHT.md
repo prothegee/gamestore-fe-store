@@ -41,9 +41,10 @@ npx playwright install
     *   Search and debounced result validation.
     *   Product detail navigation.
     *   Add-to-cart logic and Navbar count synchronization.
-    *   Cart page quantity verification (`x1`, `x2`).
+    *   Cart page quantity verification (uses specific `main span` selectors to avoid navbar collisions).
+    *   **New:** Navigation uses exact text matching (`:text-is`) for "STORE" to avoid collision with the "GAMESTORE" logo.
 *   **Localization:**
     *   Language prefix switching (`/en` to `/id`) and UI string updates.
 
 ## Configuration
-*   **`playwright.config.ts`**: Configures base URL (`http://localhost:9007`), timeout, projects, and local web server integration.
+*   **`playwright.config.ts`**: Configures base URL (`http://localhost:9008`), timeout, projects, and local web server integration.
