@@ -13,7 +13,7 @@ A modern, high-performance Game Store frontend built with Next.js 16 (App Router
 - **Lazy Loading:** Performance-optimized infinite scroll implementation using `IntersectionObserver`.
 - **Dynamic Routing:** Server-side proxy for language normalization and SEO-friendly URLs.
 - **Image Optimization:** Utilizes `next/image` with remote patterns for high-performance localized asset delivery.
-- **Shopping Cart:** Persistent cart management using LocalStorage and custom React hooks.
+- **Shopping Cart:** Robust persistent cart management using LocalStorage, multi-tab synchronization, and custom React hooks.
 - **Mock Integration:** Ready-to-use mock API layer for account management, product catalogs, and checkout flows.
 - **Environment Management:** Multi-environment support (debug, staging, prod) via unified environment variables.
 
@@ -93,7 +93,7 @@ Detailed technical documentation is available in the docs/ directory:
 ```bash
 bun dev
 ```
-Open [http://localhost:9007](http://localhost:9007) (configured via PORT in .env) to see the result.
+Open [http://localhost:9008](http://localhost:9008) (configured via PORT in .env) to see the result.
 
 ### Running Tests
 Detailed instructions available in the [Vite](docs/TEST-VITE.md) and [Playwright](docs/TEST-PLAYWRIGHT.md) documentation.
