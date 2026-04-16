@@ -1,23 +1,24 @@
-'use client';
-
-import { useState } from 'react';
 import { Container } from '@/components/Container';
-import { Button } from '@/components/Button';
-import { useI18n } from '@/lib/i18n/i18n-context';
-import Link from 'next/link';
+import { getTranslations } from '@/lib/i18n/get-translations';
 import { registerUser } from '@/lib/api/account';
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { RegisterButton } from './register-button';
 
-export default function RegisterPage() {
-  const { t, language } = useI18n();
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export default async function RegisterPage({ params, searchParams }: { params: Promise<{ lang: string }>, searchParams: Promise<{ success?: string }> }) {
+  const { lang } = await params;
+  const { success } = await searchParams;
+  const { t } = getTranslations(lang);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleRegister(formData: FormData) {
+    'use server';
+    const username = formData.get('username') as string;
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
     const response = await registerUser({ username, email, password });
     if (response.ok) {
-       alert(response.message);
+       redirect(`/${lang}/register?success=true`);
     }
   }
 
@@ -27,14 +28,18 @@ export default function RegisterPage() {
         <div className="max-w-md mx-auto bg-steam-darkest/60 p-10 rounded shadow-2xl border border-white/5">
           <h1 className="text-3xl font-bold text-white mb-8 uppercase tracking-widest">{t('auth.register')}</h1>
           
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <form action={handleRegister} className="flex flex-col gap-6">
+            {success === 'true' && (
+              <div className="bg-green-500/20 border border-green-500 text-green-200 p-3 rounded text-xs font-bold">
+                Registration successful! You can now <Link href={`/${lang}/login`} className="underline">Sign In</Link>.
+              </div>
+            )}
             <div className="flex flex-col gap-2">
               <label className="text-xs font-bold text-steam-light uppercase tracking-wider">Username</label>
               <input 
+                name="username"
                 type="text" 
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="bg-steam-darkest border border-gray-700 rounded px-4 py-2 focus:border-steam-light outline-none transition-colors"
+                className="bg-steam-darkest border border-gray-700 rounded px-4 py-2 focus:border-steam-light outline-none transition-colors text-white"
                 required
               />
             </div>
@@ -42,10 +47,9 @@ export default function RegisterPage() {
             <div className="flex flex-col gap-2">
               <label className="text-xs font-bold text-steam-light uppercase tracking-wider">Email Address</label>
               <input 
+                name="email"
                 type="email" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-steam-darkest border border-gray-700 rounded px-4 py-2 focus:border-steam-light outline-none transition-colors"
+                className="bg-steam-darkest border border-gray-700 rounded px-4 py-2 focus:border-steam-light outline-none transition-colors text-white"
                 required
               />
             </div>
@@ -53,21 +57,18 @@ export default function RegisterPage() {
             <div className="flex flex-col gap-2">
               <label className="text-xs font-bold text-steam-light uppercase tracking-wider">Password</label>
               <input 
+                name="password"
                 type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="bg-steam-darkest border border-gray-700 rounded px-4 py-2 focus:border-steam-light outline-none transition-colors"
+                className="bg-steam-darkest border border-gray-700 rounded px-4 py-2 focus:border-steam-light outline-none transition-colors text-white"
                 required
               />
             </div>
             
-            <Button type="submit" variant="primary" className="mt-4 py-3">
-              Create Account
-            </Button>
+            <RegisterButton label="Create Account" />
             
             <div className="mt-6 pt-6 border-t border-gray-800 flex flex-col gap-4 text-center">
                <span className="text-gray-500 text-xs uppercase tracking-widest">Already have an account?</span>
-               <Link href={`/${language}/login`} className="text-steam-light hover:underline text-sm uppercase font-bold transition-all">
+               <Link href={`/${lang}/login`} className="text-steam-light hover:underline text-sm uppercase font-bold transition-all">
                   Sign In
                </Link>
             </div>
