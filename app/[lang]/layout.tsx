@@ -6,6 +6,8 @@ import { Footer } from "@/components/Footer";
 import { EnvBanner } from "@/components/EnvBanner";
 import { Language } from "@/lib/i18n/translations";
 
+import { getSession } from "@/lib/api/account";
+
 export default async function LanguageLayout({
   children,
   params,
@@ -14,13 +16,14 @@ export default async function LanguageLayout({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
+  const session = await getSession();
 
   return (
     <I18nProvider initialLanguage={lang as Language}>
-      <AuthProvider>
+      <AuthProvider initialUser={session}>
         <CartProvider>
           <EnvBanner />
-          <Navbar />
+          <Navbar lang={lang} />
           <main className="flex-grow">
             {children}
           </main>
