@@ -1,30 +1,25 @@
-'use client';
-
-import { useState } from 'react';
 import { Container } from '@/components/Container';
-import { Button } from '@/components/Button';
-import { useI18n } from '@/lib/i18n/i18n-context';
-import { useAuth } from '@/lib/api/auth-context';
-import { useRouter } from 'next/navigation';
+import { getTranslations } from '@/lib/i18n/get-translations';
+import { loginUser } from '@/lib/api/account';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { LoginButton } from './login-button';
 
-export default function LoginPage() {
-  const { t, language } = useI18n();
-  const { login } = useAuth();
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+export default async function LoginPage({ params, searchParams }: { params: Promise<{ lang: string }>, searchParams: Promise<{ error?: string }> }) {
+  const { lang } = await params;
+  const { error } = await searchParams;
+  const { t } = getTranslations(lang);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError('');
-    
-    const success = await login(email, password);
-    if (success) {
-      router.push(`/${language}/home`);
+  async function handleLogin(formData: FormData) {
+    'use server';
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    const response = await loginUser(email, password);
+    if (response.ok) {
+      redirect(`/${lang}/home`);
     } else {
-      setError('Invalid credentials. Use demouser:demouser');
+      redirect(`/${lang}/login?error=invalid`);
     }
   }
 
@@ -34,20 +29,19 @@ export default function LoginPage() {
         <div className="max-w-md mx-auto bg-steam-darkest/60 p-10 rounded shadow-2xl border border-white/5">
           <h1 className="text-3xl font-bold text-white mb-8 uppercase tracking-widest">{t('auth.login')}</h1>
           
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            {error && (
+          <form action={handleLogin} className="flex flex-col gap-6">
+            {error === 'invalid' && (
               <div className="bg-red-500/20 border border-red-500 text-red-200 p-3 rounded text-xs font-bold">
-                {error}
+                Invalid credentials. Use demouser:demouser
               </div>
             )}
             <div className="flex flex-col gap-2">
               <label className="text-xs font-bold text-steam-light uppercase tracking-wider">Username</label>
               <input 
+                name="email"
                 type="text" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 placeholder="demouser"
-                className="bg-steam-darkest border border-gray-700 rounded px-4 py-2 focus:border-steam-light outline-none transition-colors"
+                className="bg-steam-darkest border border-gray-700 rounded px-4 py-2 focus:border-steam-light outline-none transition-colors text-white"
                 required
               />
             </div>
@@ -55,22 +49,19 @@ export default function LoginPage() {
             <div className="flex flex-col gap-2">
               <label className="text-xs font-bold text-steam-light uppercase tracking-wider">Password</label>
               <input 
+                name="password"
                 type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 placeholder="demouser"
-                className="bg-steam-darkest border border-gray-700 rounded px-4 py-2 focus:border-steam-light outline-none transition-colors"
+                className="bg-steam-darkest border border-gray-700 rounded px-4 py-2 focus:border-steam-light outline-none transition-colors text-white"
                 required
               />
             </div>
             
-            <Button type="submit" variant="primary" className="mt-4 py-3">
-              Sign In
-            </Button>
+            <LoginButton label="Sign In" />
             
             <div className="mt-6 pt-6 border-t border-gray-800 flex flex-col gap-4 text-center">
                <span className="text-gray-500 text-xs uppercase tracking-widest">Don&apos;t have an account?</span>
-               <Link href={`/${language}/register`} className="text-steam-light hover:underline text-sm uppercase font-bold transition-all">
+               <Link href={`/${lang}/register`} className="text-steam-light hover:underline text-sm uppercase font-bold transition-all">
                   Create an account
                </Link>
             </div>
