@@ -4,11 +4,12 @@
 // - Current state is in demouser.
 // - Cart ensures all items have a quantity >= 1 to avoid NaN errors, Gemini.
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useRef } from 'react';
 import { Game } from '@/lib/api/dummy-data';
 import { useAuth } from '@/lib/api/auth-context';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '../i18n/i18n-context';
+import { UserProfile } from '../api/account';
 
 export type CartItem = Game & { quantity: number };
 
@@ -24,7 +25,11 @@ type CartContextType = {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({ 
+  children
+}: { 
+  children: ReactNode
+}) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const { user, isAuthenticated } = useAuth();
   const { language } = useI18n();
@@ -34,41 +39,68 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return user ? `cart_${user.id}` : null;
   }, [user]);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
+  // Use a ref to track if the update is coming from our own state changes
+  const isInternalUpdate = useRef(false);
+
+  // Handle initial load and external updates
   useEffect(() => {
-    if (!storageKey) {
-      setCartItems([]);
-      return;
-    }
+    const syncCart = (event?: Event) => {
+      if (!storageKey) {
+        setCartItems([]);
+        return;
+      }
 
-    const savedCart = localStorage.getItem(storageKey);
-    if (savedCart) {
-      queueMicrotask(() => {
+      // If this is a cart-update event we dispatched ourselves, skip it.
+      if (event?.type === 'cart-update' && isInternalUpdate.current) {
+        return;
+      }
+      
+      const savedCart = localStorage.getItem(storageKey);
+      if (savedCart) {
         try {
-          const parsed = JSON.parse(savedCart);
-
-          const normalized = (parsed as CartItem[]).reduce((acc: CartItem[], item: CartItem) => {
-            const existing = acc.find(i => i.id === item.id);
-            if (existing) {
-              existing.quantity += (item.quantity || 1);
-            } else {
-              acc.push({ ...item, quantity: item.quantity || 1 });
-            }
-            return acc;
-          }, []);
-
+          const parsed = JSON.parse(savedCart) as CartItem[];
+          const normalized = parsed.map(item => ({
+            ...item,
+            quantity: Math.max(1, item.quantity || 1)
+          }));
+          
           setCartItems(normalized);
-          localStorage.setItem(storageKey, JSON.stringify(normalized));
         } catch {
           console.error("Failed to parse cart");
           setCartItems([]);
         }
-      });
-    } else {
-      setCartItems([]);
-    }
+      } else {
+        setCartItems([]);
+      }
+    };
+
+    syncCart();
+    
+    window.addEventListener('storage', syncCart);
+    window.addEventListener('cart-update', syncCart);
+    return () => {
+      window.removeEventListener('storage', syncCart);
+      window.removeEventListener('cart-update', syncCart);
+    };
   }, [storageKey]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Persist changes to localStorage and notify other components
+  useEffect(() => {
+    if (!storageKey) return;
+    
+    if (isInternalUpdate.current) {
+      if (cartItems.length === 0) {
+        localStorage.removeItem(storageKey);
+      } else {
+        localStorage.setItem(storageKey, JSON.stringify(cartItems));
+      }
+      window.dispatchEvent(new Event('cart-update'));
+      
+      // Reset the flag. Since effects run after the render and event dispatch
+      // is synchronous, any local listeners would have finished.
+      isInternalUpdate.current = false;
+    }
+  }, [cartItems, storageKey]);
 
   function addToCart(game: Game) {
     if (!isAuthenticated || !storageKey) {
@@ -76,57 +108,47 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
     
+    isInternalUpdate.current = true;
     setCartItems(prev => {
       const existingItem = prev.find(item => item.id === game.id);
-      let updated;
       if (existingItem) {
-        updated = prev.map(item => 
+        return prev.map(item => 
           item.id === game.id ? { ...item, quantity: (item.quantity || 0) + 1 } : item
         );
-      } else {
-        updated = [...prev, { ...game, quantity: 1 }];
       }
-      localStorage.setItem(storageKey, JSON.stringify(updated));
-      return updated;
+      return [...prev, { ...game, quantity: 1 }];
     });
   }
 
   function updateQuantity(id: string, delta: number) {
     if (!storageKey) return;
     
+    isInternalUpdate.current = true;
     setCartItems(prev => {
       const existing = prev.find(item => item.id === id);
       if (!existing) return prev;
 
       const newQuantity = existing.quantity + delta;
       
-      let updated;
       if (newQuantity <= 0) {
-        updated = prev.filter(item => item.id !== id);
-      } else {
-        updated = prev.map(item => 
-          item.id === id ? { ...item, quantity: newQuantity } : item
-        );
+        return prev.filter(item => item.id !== id);
       }
-      
-      localStorage.setItem(storageKey, JSON.stringify(updated));
-      return updated;
+      return prev.map(item => 
+        item.id === id ? { ...item, quantity: newQuantity } : item
+      );
     });
   }
 
   function removeFromCart(id: string) {
     if (!storageKey) return;
-    setCartItems(prev => {
-      const updated = prev.filter(item => item.id !== id);
-      localStorage.setItem(storageKey, JSON.stringify(updated));
-      return updated;
-    });
+    isInternalUpdate.current = true;
+    setCartItems(prev => prev.filter(item => item.id !== id));
   }
 
   function clearCart() {
     if (!storageKey) return;
+    isInternalUpdate.current = true;
     setCartItems([]);
-    localStorage.removeItem(storageKey);
   }
 
   const total = useMemo(() => {
