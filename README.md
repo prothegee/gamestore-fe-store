@@ -1,4 +1,23 @@
-# GameStore Frontend
+# GameStore Frontend (Next.js 16 App Router)
+
+<details close>
+<summary>TL;DR</summary>
+GameStore Frontend (Next.js 16 App Router)
+
+• Built a high-performance Steam-inspired game store frontend with Next.js 16 (App Router), featuring responsive dark UI, infinite scroll catalog with 100+ procedurally generated games, and debounced client-side search.
+
+• Implemented hybrid rendering strategy: async server components for core pages + client islands for interactive elements (cart, forms), with `IntersectionObserver`-based lazy loading and `next/image` optimization for localized asset delivery.
+
+• Engineered secure, server-first state management: HTTP-only-style session cookies read server-side, signed cart cookies with server actions + optimistic UI updates, and client-side form validation before server submission.
+
+• Delivered full internationalization (English/Bahasa Indonesia) via language-prefixed routing (`/{lang}/`) with localized metadata, translations, and server-side locale resolution.
+
+• Established comprehensive QA: Vitest for unit testing hooks/state/i18n, Playwright for cross-browser E2E flows (Chrome/Firefox/Safari), plus auto-formatting CI on merge.
+
+• Tech Stack: Next.js 16 (Turbopack), React 19, Tailwind CSS 4, Bun runtime, React Context + Server Actions, mock API layer for auth/catalog/checkout.
+
+• Outcome: Production-ready storefront architecture balancing SSR performance, client interactivity, and developer experience — with detailed ADRs, HLD/LLD docs, and environment-aware configuration for debug/staging/prod workflows.
+</details>
 
 A modern, high-performance Game Store frontend built with Next.js 16 (App Router), mimicking the iconic Steam Store aesthetic and functionality.
 
