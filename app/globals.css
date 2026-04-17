@@ -30,9 +30,8 @@ a {
   text-decoration: none;
 }
 
-a:hover {
-  text-decoration: underline;
-}
+/* Underlines are applied selectively via Tailwind's hover:underline utility
+   on text links — not globally, to avoid affecting button-styled <Link> elements. */
 
 /* Steam-like Scrollbar */
 ::-webkit-scrollbar {
@@ -51,4 +50,8 @@ a:hover {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-steam-light);
+}
+
+.hidden {
+  display: none;
 }

@@ -92,7 +92,7 @@ export function NavbarClient({
                   setIsLangOpen(!isLangOpen);
                   setIsMobileMenuOpen(false);
                 }}
-                className="text-steam-text hover:text-white uppercase flex items-center gap-1 font-bold tracking-tighter px-3 py-1.5 bg-white/5 rounded-md border border-white/5 active:bg-white/10"
+                className="text-steam-text hover:text-white hover:bg-white/10 uppercase flex items-center gap-1 font-bold tracking-tighter px-3 py-1.5 bg-white/5 rounded-md border border-white/5 active:bg-white/15 transition-colors"
               >
                 <span className="hidden xs:inline text-steam-light/60">LANG:</span> {lang}
                 <span className={`text-[8px] transition-transform ${isLangOpen ? 'rotate-180' : ''}`}>▼</span>

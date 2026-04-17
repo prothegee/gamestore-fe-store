@@ -1,24 +1,62 @@
 # Store & Checkout Documentation
 
 ## Overview
-The store allows browsing games, adding them to a cart, and completing a purchase flow. All game content is localized using dynamic data functions.
+The store allows browsing games, adding them to a server-side cart, and completing a purchase flow. All game content is localized using dynamic data functions. The store page uses Suspense streaming for instant shell rendering.
 
-## Functionality
-- `/{lang}/store`: Dedicated page showing the full collection of **100 unique games**.
-- `Search & Filtering`: Debounced (500ms) search input filtering by **Title** or **TagList** (Case-insensitive, supports en/id).
-- `Infinite Scroll (Lazy Loading)`: Uses `IntersectionObserver` to fetch more games (12 per page) as the user scrolls.
+## Store Page (`/{lang}/store`)
+
+### Rendering
+- The store page is a **Client Component** (`'use client'`) that manages its own state for games, search, and pagination.
+- It utilizes **Infinite Scroll (Lazy Loading)** via `IntersectionObserver` to fetch games in batches of 12 as the user scrolls.
+
+### Search & Filtering
+- **Debounced Search:** Includes a search input with a 500ms debounce to filter games by title or tags without instant network spam.
+- **Client-side State:** Search term and results are managed via `useState`.
 - `getGamesPaged(lang, page, limit, search)`: Asynchronous mock API returning a Promise with simulated **800ms latency**.
-- `GameCard`: Reusable component using `next/image` for optimized loading with `flex flex-col h-full` for uniform layout.
-
-## Performance
-- **Next.js Image Optimization:** All images use `<Image />` with `remotePatterns` for secure, fast delivery.
-- **Aspect Ratios:** 1:1 (Trending/New), 16:9 (Feature/Store Grid), 21:9 (Highlights) are strictly maintained for uniformity.
-- **Lazy Loading Efficiency:** Only 12 items are rendered initially; browser resources are conserved until the user scrolls.
-- **Search Efficiency:** Filtering is performed on the mock data layer before slicing, simulating server-side pagination.
+- `GameCard`: Reusable component using `next/image` for optimized loading with uniform `aspect-ratio: 16/9`.
 
 ## Shopping Cart
-- **Persistent State:** Uses `LocalStorage` to save cart items, with unique keys per user (`cart_{userId}`).
-- **Syncing Logic:** Implements a custom `useCart` hook that synchronizes state across multiple tabs using the `storage` event and a local `cart-update` event.
-- **Robustness:** Side effects (persistence and event dispatching) are handled in a dedicated `useEffect` to ensure state purity and compatibility with React Strict Mode.
-- **Normalization:** Automatically ensures all items have a `quantity >= 1` and merges duplicates if detected during external syncs.
-- **Quantity Controls:** Supports incrementing, decrementing (auto-removes at 0), and direct removal.
+
+### Architecture
+The cart is a three-layer hybrid system:
+
+```
+Cart cookie  ←  Server actions  ←→  CartProvider (optimistic client state)
+```
+
+- **Storage:** A `cart` cookie stores `{ gameId, quantity }[]` (compact entries).
+- **Hydration:** On each layout render, `getCart(lang)` (server-side) reads the `cart` cookie and resolves full `CartItem[]` objects. These are passed as `initialCart` to `CartProvider`.
+- **Server actions** (`lib/api/cart.ts`):
+  - `getCart(lang)` — hydrates cart from cookie.
+  - `addToCartAction(gameId)` — increments or inserts item.
+  - `removeFromCartAction(gameId)` — removes item from the cookie.
+  - `updateQuantityAction(gameId, delta)` — adjusts quantity; auto-removes at 0.
+  - `clearCartAction()` — deletes the `cart` cookie.
+
+### Optimistic Updates
+`CartProvider` (`lib/hooks/useCart.tsx`) applies mutations using functional `setState` immediately — UI reflects the change before the server action responds. The server action runs in the background to persist the change to the cookie.
+
+This pattern means:
+- **Client-side navigations:** Optimistic state is preserved (e.g., clicking the cart nav link).
+- **Hard navigations:** Layout re-reads the cookie; if the server action has completed, the correct quantity is returned.
+
+### Quantity Controls
+- Increment / Decrement: `updateQuantity(id, +1 | -1)`.
+- Decrement to 0 automatically removes the item.
+- Direct removal: `removeFromCart(id)`.
+- Clear all: `clearCart()`.
+
+## Add to Cart Button (`/{lang}/game/[id]`)
+- `AddToCartButton` is a `'use client'` island on the localized game detail page (Server Component).
+- If the user is not authenticated: redirects to `/{lang}/login`.
+- If authenticated: calls `addToCart(game)` (optimistic) and shows **"Added!"** feedback for 1.5 seconds.
+
+## Checkout (`/{lang}/checkout`)
+- Client component that reads `total` from `CartProvider`.
+- Simulates payment with a 2-second timeout.
+- On success: calls `clearCart()` (clears local state + `cart` cookie) and redirects to `/{lang}/payment-status?success=true`.
+
+## Performance
+- **Next.js Image Optimization:** All images use `<Image />` with `remotePatterns` for secure delivery.
+- **Lazy Loading Efficiency:** Conserves browser resources by only rendering and fetching games as needed.
+- **Aspect Ratios:** 1:1 (Trending/New), 16:9 (Store Grid) strictly maintained for layout uniformity.

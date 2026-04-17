@@ -1,38 +1,75 @@
-# Hybrid Rendering Architecture (SSR, SSG, CSR)
+# Hybrid Rendering Architecture
 
-The GameStore Frontend utilizes a "Hybrid" approach to rendering, combining the best of Server-Side Rendering, Static Site Generation, and Client-Side Rendering to achieve high performance and interactivity.
+The GameStore Frontend uses a **hybrid approach** that balances **Server-First** performance for core pages with **Client-First** interactivity for high-frequency user actions like the infinite-scroll store.
 
-## 1. SSR (Server-Side Rendering)
-**Primary Location:** `app/[lang]/layout.tsx`
+---
 
-The core shell of every page is rendered on the server. When a request hits the server (e.g., `/id/store`):
-- The server processes the `[lang]` parameter immediately.
-- It determines the user's preferred language and sets the initial i18n context.
-- It generates the HTML for the **Navbar**, **Footer**, and the global **EnvBanner**.
-- **Benefit:** This ensures the page is indexable by search engines (SEO) and provides a fast "First Contentful Paint" for the user.
+## 1. Server-First Pages (SSR)
 
-## 2. CSR (Client-Side Rendering)
-**Primary Location:** `app/[lang]/store/page.tsx`, `app/[lang]/home/page.tsx`, `components/Navbar.tsx`
+**Pages:** Home, Game Details, Login, Register, Profile.
 
-Once the server-rendered shell arrives in the browser, React takes over (hydration). Interactive features are handled exclusively on the client:
-- **Infinite Scroll:** Uses the `IntersectionObserver` API to detect when to fetch the next batch of games.
-- **Search & Filtering:** The debounced search logic and real-time state updates are CSR-driven.
-- **Language Switching:** The transition between `/en` and `/id` routes is managed by the Next.js router on the client.
-- **Shopping Cart:** Persistent storage in `localStorage` with multi-tab synchronization logic.
-- **Benefit:** Provides a fluid, "App-like" experience with no full-page reloads during catalog browsing.
+### What happens on the server
+- **Parallel Data Fetching:** Auth session (`getSession()`) and Cart (`getCart(lang)`) are read from cookies in parallel in the root language layout (`app/[lang]/layout.tsx`).
+- **Instant Paint:** Navbar, Footer, and core page content are rendered to HTML on the server.
+- **Security:** Sensitive session reading happens entirely server-side.
+- **I18n:** Translations are resolved synchronously via `getTranslations(lang)`.
 
-## 3. SSG (Static Site Generation) & Optimization
-**Primary Location:** `public/`, `next.config.ts`, Asset Layer
+---
 
-While many pages are dynamic, Next.js applies static optimizations automatically:
-- **Asset Optimization:** Remote images from `placehold.co` are pre-processed and optimized at the edge.
-- **Static Assets:** CSS, Fonts, and global SVGs are served as static files for maximum speed.
-- **SSG-Ready:** The architecture is designed to support `generateStaticParams`, allowing all localized routes to be fully pre-rendered at build time if the data set becomes stable.
+## 2. Client-First Store (CSR)
+
+**Location:** `app/[lang]/store/page.tsx`
+
+The Store page prioritizes smooth interaction and infinite scrolling:
+- **'use client':** The entire page is a client component to manage complex filtering and scroll state.
+- **Infinite Scroll:** Uses `IntersectionObserver` to trigger fetches as the user scrolls, avoiding rigid pagination buttons.
+- **Debounced Search:** Local state handles typing with a 500ms delay before triggering a fetch.
+- **Performance:** Initial games are fetched on mount; browser resources are conserved by only rendering visible items.
+
+---
+
+## 3. Client Islands
+
+Specific interactive elements co-exist within server pages:
+
+| Island | Why it needs the client |
+| :--- | :--- |
+| `AddToCartButton` | Optimistic cart updates, shows "Added!" feedback |
+| `LoginForm` / `RegisterForm` | Instant client-side validation before server action submission |
+| `NavbarClient` | Language dropdown state, real-time cart badge count |
+| `CartProvider` | Global optimistic state across the session |
+| `AuthProvider` | Exposes server-read session to client components |
+
+---
+
+## 4. Optimistic Cart System
+
+The cart uses a hybrid approach to ensure zero latency:
+
+1. **Storage:** Server-side `cart` cookie (source of truth).
+2. **Action:** Next.js **Server Actions** handle cookie writes.
+3. **Optimism:** `CartProvider` applies mutations to local state **immediately** via functional `setState`.
+4. **Synchronization:** Server actions run in the background; the UI stays snappy regardless of network latency.
+
+---
+
+## 5. Client-Side Form Validation
+
+Authentication forms (`login`, `register`) utilize a wrapper pattern:
+1. The **Server Page** defines the server action and layout.
+2. The **Client Island** (`LoginForm`) handles the `<form>` and validation.
+3. Errors (empty fields, short passwords) appear **instantly** without a server round-trip.
+4. If valid, the native form action triggers the server action for secure processing.
+
+---
 
 ## Summary Table
 
-| Paradigm | Usage in GameStore | Key Benefit |
+| Feature | Strategy | Benefit |
 | :--- | :--- | :--- |
-| **SSR** | Layouts, language detection, SEO metadata. | Search engine visibility & fast initial load. |
-| **CSR** | Search, Infinite Scroll, Cart, UI interactivity. | Smooth user experience without refreshes. |
-| **SSG** | Global styles, optimized images, static assets. | Low-latency delivery of core assets. |
+| **Home Page** | Server-First | Best SEO and LCP |
+| **Store Page** | Client-First | Fluid infinite scrolling and instant search |
+| **Auth Session** | Server-Init + Cookie | Secure, no layout shift or loading spinners |
+| **Cart Logic** | Optimistic Client + Server Action | Instant feedback, persistent across hard nav |
+| **I18n** | Parallel Dictionary Resolve | Localized HTML delivered on first byte |
+

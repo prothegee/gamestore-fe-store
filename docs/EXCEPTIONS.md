@@ -43,11 +43,11 @@ DarkReader will no longer apply dark mode to this site. If native dark mode supp
 ### `react-hooks/set-state-in-effect`
 
 #### Problem
-The `eslint-plugin-react-hooks` rule `set-state-in-effect` flags `setState` calls inside `useEffect` that run synchronously. However, initializing state from `localStorage` on component mount is a valid and necessary pattern that cannot be replaced with the recommended "You Might Not Need an Effect" alternatives.
+The `eslint-plugin-react-hooks` rule `set-state-in-effect` flags `setState` calls inside `useEffect` that run synchronously. This is common when synchronizing client-side state with cookies or external storage on mount.
 
 #### Affected Files
-- `lib/api/auth-context.tsx` — Restores user session from `localStorage` on mount.
-- `lib/i18n/i18n-context.tsx` — Syncs initial language preference from URL/cookie.
+- `lib/api/auth-context.tsx` — Syncs/restores user session from the `user_session` cookie on mount.
+- `lib/i18n/i18n-context.tsx` — Syncs initial language preference from the `_preferred-lang` cookie.
 
 #### Approach
 Block-level `/* eslint-disable react-hooks/set-state-in-effect */` / `/* eslint-enable */` comments wrap the specific `useEffect` blocks. This is preferred over global config because it limits the suppression to the exact scope that needs it.
