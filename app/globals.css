@@ -51,7 +51,3 @@ a {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-steam-light);
 }
-
-.hidden {
-  display: none;
-}
