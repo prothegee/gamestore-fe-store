@@ -29,51 +29,55 @@ export default function CartPage() {
                {cartItems.map((item) => {
                  const price = item.discount ? item.price * (1 - item.discount / 100) : item.price;
                  return (
-                   <div key={item.id} className="bg-steam-darkest/40 p-4 rounded flex gap-6 items-center border border-white/5 group hover:bg-steam-darkest/60 transition-all">
-                      <Link href={`/${language}/game/${item.id}`} className="relative w-32 h-20 shrink-0 overflow-hidden rounded">
-                        <Image
-                          src={item.imageUrl}
-                          alt={item.title}
-                          fill
-                          sizes="128px"
-                          className="object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                      </Link>
-                      <div className="grow">
-                         <Link href={`/${language}/game/${item.id}`} className="text-white font-medium hover:text-steam-light transition-colors block mb-1">
-                           {item.title} 
-                         </Link>
-                         <div className="text-steam-light font-bold text-sm">
-                           ${price.toFixed(2)} 
-                           {item.quantity > 1 && <span className="text-gray-500 text-[10px] font-normal ml-2">(${ (price * item.quantity).toFixed(2) } total)</span>}
-                         </div>
+                   <div key={item.id} className="bg-steam-darkest/40 p-4 rounded flex flex-col sm:flex-row gap-4 sm:gap-6 sm:items-center border border-white/5 group hover:bg-steam-darkest/60 transition-all">
+                      <div className="flex gap-4 sm:gap-6 items-center grow">
+                        <Link href={`/${language}/game/${item.id}`} className="relative w-24 h-16 sm:w-32 sm:h-20 shrink-0 overflow-hidden rounded">
+                          <Image
+                            src={item.imageUrl}
+                            alt={item.title}
+                            fill
+                            sizes="(max-width: 640px) 96px, 128px"
+                            className="object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                        </Link>
+                        <div className="grow min-w-0">
+                           <Link href={`/${language}/game/${item.id}`} className="text-white font-medium hover:text-steam-light transition-colors block mb-1 truncate">
+                             {item.title} 
+                           </Link>
+                           <div className="text-steam-light font-bold text-sm flex flex-wrap items-baseline gap-x-2">
+                             <span>${price.toFixed(2)}</span>
+                             {item.quantity > 1 && <span className="text-gray-500 text-[10px] font-normal">(${ (price * item.quantity).toFixed(2) } total)</span>}
+                           </div>
+                        </div>
                       </div>
 
-                      {/* Quantity Controls */}
-                      <div className="flex items-center bg-black/40 rounded overflow-hidden border border-white/5">
-                        <button 
-                          onClick={() => updateQuantity(item.id, -1)}
-                          className="px-3 py-1 text-gray-400 hover:text-white hover:bg-white/5 transition-all font-bold"
+                      <div className="flex items-center justify-between sm:justify-start gap-4 sm:gap-6">
+                        {/* Quantity Controls */}
+                        <div className="flex items-center bg-black/40 rounded overflow-hidden border border-white/5 shrink-0">
+                          <button 
+                            onClick={() => updateQuantity(item.id, -1)}
+                            className="px-3 py-1 text-gray-400 hover:text-white hover:bg-white/5 transition-all font-bold"
+                          >
+                            -
+                          </button>
+                          <span className="px-3 py-1 text-steam-light font-bold text-xs min-w-[2.5rem] text-center">
+                            {item.quantity}
+                          </span>
+                          <button 
+                            onClick={() => updateQuantity(item.id, 1)}
+                            className="px-3 py-1 text-gray-400 hover:text-white hover:bg-white/5 transition-all font-bold"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="text-gray-500 hover:text-red-400 text-[10px] underline uppercase transition-colors sm:px-2 shrink-0"
                         >
-                          -
-                        </button>
-                        <span className="px-3 py-1 text-steam-light font-bold text-xs min-w-[2.5rem] text-center">
-                          {item.quantity}
-                        </span>
-                        <button 
-                          onClick={() => updateQuantity(item.id, 1)}
-                          className="px-3 py-1 text-gray-400 hover:text-white hover:bg-white/5 transition-all font-bold"
-                        >
-                          +
+                          Remove
                         </button>
                       </div>
-
-                      <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="text-gray-500 hover:text-red-400 text-[10px] underline uppercase transition-colors px-2"
-                      >
-                        Remove
-                      </button>
                    </div>
                  );
                })}
