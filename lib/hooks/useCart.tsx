@@ -1,14 +1,22 @@
 'use client';
 
 // IMPORTANT:
-// - Current state is in demouser.
-// - Cart ensures all items have a quantity >= 1 to avoid NaN errors, Gemini.
+// - Cart state is initialised from the server (cookie) and kept in sync via server actions.
+// - Mutations use functional setState so batched calls always build on the latest state.
+// - Server actions update the cart cookie in the background; errors are logged but do not
+//   roll back the UI (acceptable for a demo app where cookie writes won't fail).
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
 import { Game } from '@/lib/api/dummy-data';
 import { useAuth } from '@/lib/api/auth-context';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '../i18n/i18n-context';
+import {
+  addToCartAction,
+  removeFromCartAction,
+  updateQuantityAction,
+  clearCartAction,
+} from '@/lib/api/cart';
 
 export type CartItem = Game & { quantity: number };
 
@@ -24,121 +32,79 @@ type CartContextType = {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const { user, isAuthenticated } = useAuth();
+export function CartProvider({
+  children,
+  initialCart = [],
+}: {
+  children: ReactNode;
+  initialCart?: CartItem[];
+}) {
+  const [cartItems, setCartItems] = useState<CartItem[]>(initialCart);
+  const { isAuthenticated } = useAuth();
   const { language } = useI18n();
   const router = useRouter();
 
-  const storageKey = useMemo(() => {
-    return user ? `cart_${user.id}` : null;
-  }, [user]);
-
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (!storageKey) {
-      setCartItems([]);
-      return;
-    }
-
-    const savedCart = localStorage.getItem(storageKey);
-    if (savedCart) {
-      queueMicrotask(() => {
-        try {
-          const parsed = JSON.parse(savedCart);
-
-          const normalized = (parsed as CartItem[]).reduce((acc: CartItem[], item: CartItem) => {
-            const existing = acc.find(i => i.id === item.id);
-            if (existing) {
-              existing.quantity += (item.quantity || 1);
-            } else {
-              acc.push({ ...item, quantity: item.quantity || 1 });
-            }
-            return acc;
-          }, []);
-
-          setCartItems(normalized);
-          localStorage.setItem(storageKey, JSON.stringify(normalized));
-        } catch {
-          console.error("Failed to parse cart");
-          setCartItems([]);
-        }
-      });
-    } else {
-      setCartItems([]);
-    }
-  }, [storageKey]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
   function addToCart(game: Game) {
-    if (!isAuthenticated || !storageKey) {
+    if (!isAuthenticated) {
       router.push(`/${language}/login`);
       return;
     }
-    
+
+    // Functional update so batched calls each build on the latest state
     setCartItems(prev => {
-      const existingItem = prev.find(item => item.id === game.id);
-      let updated;
-      if (existingItem) {
-        updated = prev.map(item => 
-          item.id === game.id ? { ...item, quantity: (item.quantity || 0) + 1 } : item
-        );
-      } else {
-        updated = [...prev, { ...game, quantity: 1 }];
-      }
-      localStorage.setItem(storageKey, JSON.stringify(updated));
-      return updated;
+      const existing = prev.find(item => item.id === game.id);
+      return existing
+        ? prev.map(item =>
+            item.id === game.id ? { ...item, quantity: item.quantity + 1 } : item
+          )
+        : [...prev, { ...game, quantity: 1 }];
     });
+
+    addToCartAction(game.id).catch(err =>
+      console.error('Cart server action failed (addToCart)', err)
+    );
   }
 
   function updateQuantity(id: string, delta: number) {
-    if (!storageKey) return;
-    
     setCartItems(prev => {
       const existing = prev.find(item => item.id === id);
       if (!existing) return prev;
-
-      const newQuantity = existing.quantity + delta;
-      
-      let updated;
-      if (newQuantity <= 0) {
-        updated = prev.filter(item => item.id !== id);
-      } else {
-        updated = prev.map(item => 
-          item.id === id ? { ...item, quantity: newQuantity } : item
-        );
-      }
-      
-      localStorage.setItem(storageKey, JSON.stringify(updated));
-      return updated;
+      const newQty = existing.quantity + delta;
+      return newQty <= 0
+        ? prev.filter(item => item.id !== id)
+        : prev.map(item =>
+            item.id === id ? { ...item, quantity: newQty } : item
+          );
     });
+
+    updateQuantityAction(id, delta).catch(err =>
+      console.error('Cart server action failed (updateQuantity)', err)
+    );
   }
 
   function removeFromCart(id: string) {
-    if (!storageKey) return;
-    setCartItems(prev => {
-      const updated = prev.filter(item => item.id !== id);
-      localStorage.setItem(storageKey, JSON.stringify(updated));
-      return updated;
-    });
+    setCartItems(prev => prev.filter(item => item.id !== id));
+    removeFromCartAction(id).catch(err =>
+      console.error('Cart server action failed (removeFromCart)', err)
+    );
   }
 
   function clearCart() {
-    if (!storageKey) return;
     setCartItems([]);
-    localStorage.removeItem(storageKey);
+    clearCartAction().catch(err =>
+      console.error('Cart server action failed (clearCart)', err)
+    );
   }
 
   const total = useMemo(() => {
     return cartItems.reduce((acc, item) => {
       const price = item.discount ? item.price * (1 - item.discount / 100) : item.price;
-      const quantity = item.quantity || 1;
-      return acc + (price * quantity);
+      return acc + price * item.quantity;
     }, 0);
   }, [cartItems]);
 
   const itemCount = useMemo(() => {
-    return cartItems.reduce((acc, item) => acc + (item.quantity || 1), 0);
+    return cartItems.reduce((acc, item) => acc + item.quantity, 0);
   }, [cartItems]);
 
   return (

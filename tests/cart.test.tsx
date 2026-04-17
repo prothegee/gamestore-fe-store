@@ -108,4 +108,23 @@ describe('useCart hook', () => {
     expect(result.current.cart.itemCount).toBe(0);
     expect(result.current.cart.total).toBe(0);
   });
+
+  it('should only add 1 item when addToCart is called once', async () => {
+    const { result } = renderHook(() => ({
+      cart: useCart(),
+      auth: useAuth()
+    }), { wrapper });
+
+    await act(async () => {
+      await result.current.auth.login('demouser', 'demouser');
+    });
+
+    act(() => {
+      result.current.cart.addToCart(mockGame);
+    });
+
+    expect(result.current.cart.cartItems).toHaveLength(1);
+    expect(result.current.cart.cartItems[0].quantity).toBe(1);
+    expect(result.current.cart.itemCount).toBe(1);
+  });
 });

@@ -1,39 +1,19 @@
-'use client';
-
-import { use } from 'react';
 import Image from 'next/image';
 import { Container } from '@/components/Container';
-import { Button } from '@/components/Button';
-import { useCart } from '@/lib/hooks/useCart';
-import { useAuth } from '@/lib/api/auth-context';
 import { getGameById } from '@/lib/api/dummy-data';
-import { useI18n } from '@/lib/i18n/i18n-context';
-import { useRouter } from 'next/navigation';
+import { getTranslations } from '@/lib/i18n/get-translations';
 import { Language } from '@/lib/i18n/translations';
+import { AddToCartButton } from './add-to-cart-button';
 
-export default function GameDetailPage({ params }: { params: Promise<{ id: string, lang: string }> }) {
-  const { id, lang } = use(params);
-  const { t, language } = useI18n();
-  const { addToCart } = useCart();
-  const { isAuthenticated } = useAuth();
-  const router = useRouter();
+export default async function GameDetailPage({ params }: { params: Promise<{ id: string, lang: string }> }) {
+  const { id, lang } = await params;
+  const { t } = getTranslations(lang);
 
   const game = getGameById(id, lang as Language);
 
   if (!game) return <div className="py-20 text-center text-white font-bold">Game not found</div>;
 
   const finalPrice = game.discount ? game.price * (1 - game.discount / 100) : game.price;
-
-  function handleAddToCart() {
-    if (!game) return;
-
-    if (!isAuthenticated) {
-      router.push(`/${language}/login`);
-      return;
-    }
-
-    addToCart(game);
-  }
 
   return (
     <div className="py-12">
@@ -80,13 +60,11 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                            <span className="text-lg font-bold text-steam-light">${finalPrice.toFixed(2)}</span>
                         </div>
                       </div>
-                      <Button 
-                        onClick={handleAddToCart} 
-                        variant="primary"
-                        className="!px-2 !py-1 ml-4 text-[10px] md:text-xs font-bold uppercase"
-                      >
-                        {t('common.add_to_cart')}
-                      </Button>
+                      <AddToCartButton 
+                        game={game} 
+                        label={t('common.add_to_cart')} 
+                        lang={lang}
+                      />
                    </div>
                 </div>
 

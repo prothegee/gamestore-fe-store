@@ -1,40 +1,22 @@
-'use client';
-
-import { use } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Container } from '@/components/Container';
 import { GameCard } from '@/components/GameCard';
 import { Button } from '@/components/Button';
 import { getFeaturedGames } from '@/lib/api/dummy-data';
-import { useI18n } from '@/lib/i18n/i18n-context';
-import { useCart } from '@/lib/hooks/useCart';
-import { useAuth } from '@/lib/api/auth-context';
-import { useRouter } from 'next/navigation';
+import { getTranslations } from '@/lib/i18n/get-translations';
 import { Language } from '@/lib/i18n/translations';
+import { HomeBuyNowButton } from './home-buy-now-button';
 
-export default function Home({ params }: { params: Promise<{ lang: string }> }) {
-  const { lang } = use(params);
-  const { t, language } = useI18n();
-  const { addToCart } = useCart();
-  const { isAuthenticated } = useAuth();
-  const router = useRouter();
+export default async function Home({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
+  const { t } = getTranslations(lang);
 
-  // Concurrent fetch (mock)
+  // Server-side fetch
   const games = getFeaturedGames(lang as Language);
   const mainFeatured = games[0];
   const specialOffers = games.filter(g => g.discount).slice(0, 9);
   const trending = games.slice(1, 11);
-
-  function handleBuyNow(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (!isAuthenticated) {
-      router.push(`/${language}/login`);
-      return;
-    }
-    addToCart(mainFeatured);
-    router.push(`/${language}/cart`);
-  }
 
   return (
     <div className="pb-10 md:pb-20">
@@ -42,8 +24,8 @@ export default function Home({ params }: { params: Promise<{ lang: string }> }) 
       <section className="bg-linear-to-b from-steam-darkest to-steam-darker pt-6 md:pt-10 pb-10 md:pb-20 overflow-hidden">
         <Container>
           <div className="flex flex-col lg:flex-row gap-6 md:gap-8 items-stretch">
-            <div
-              onClick={() => router.push(`/${language}/game/${mainFeatured.id}`)}
+            <Link
+              href={`/${lang}/game/${mainFeatured.id}`}
               className="grow shadow-2xl relative group cursor-pointer rounded-sm overflow-hidden"
             >
               <div className="relative aspect-video w-full">
@@ -65,19 +47,19 @@ export default function Home({ params }: { params: Promise<{ lang: string }> }) 
                   ))}
                 </div>
                 <div className="flex items-center gap-3 md:gap-4">
-                  <Button onClick={handleBuyNow} variant="primary" className="px-4 md:px-6 text-xs md:text-sm">{t('common.buy_now')}</Button>
+                  <HomeBuyNowButton game={mainFeatured} label={t('common.buy_now')} lang={lang} />
                   <span className="text-xl md:text-2xl font-bold text-steam-light">${(mainFeatured.price * (1 - (mainFeatured.discount || 0)/100)).toFixed(2)}</span>
                 </div>
               </div>
-            </div>
+            </Link>
 
             <div className="lg:w-80 flex flex-col gap-3 md:gap-4">
               <h2 className="text-[10px] md:text-sm font-bold tracking-widest uppercase text-gray-400">{t('home.featured')}</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 md:gap-4">
                  {trending.map(game => (
-                    <div
+                    <Link
                       key={game.id}
-                      onClick={() => router.push(`/${language}/game/${game.id}`)}
+                      href={`/${lang}/game/${game.id}`}
                       className="flex gap-3 md:gap-4 group cursor-pointer bg-steam-darkest/30 hover:bg-steam-darkest/60 p-2 rounded transition-all"
                     >
                        <div className="relative w-20 md:w-24 h-12 md:h-16 shrink-0">
@@ -93,7 +75,7 @@ export default function Home({ params }: { params: Promise<{ lang: string }> }) 
                           <span className="text-xs md:text-sm font-medium group-hover:text-steam-light transition-colors truncate">{game.title}</span>
                           <span className="text-[10px] md:text-xs text-gray-500">${game.price.toFixed(2)}</span>
                        </div>
-                    </div>
+                    </Link>
                  ))}
               </div>
             </div>

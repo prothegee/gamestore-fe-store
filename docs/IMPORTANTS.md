@@ -112,7 +112,40 @@ Changing the language or search term while being deep in the paginated results w
 Users would see a mix of English and Indonesian titles, or search results that didn't match their latest query, because the `page` state didn't reset on filter changes.
 
 **The Solution:**
-Implemented two specific `useEffect` hooks in `StorePage`:
-- One to **reset** `games`, `page`, and `hasMore` whenever `lang` or `debouncedSearch` changes.
-- One to **fetch** data when `page` increments or filters change.
-- Added **unique keys** to `GameCard` components (`${id}-${index}-${query}`) to force clean DOM reconciliation when the search context changes.
+Migrated to URL-driven search and pagination (`?q=&page=`). The store page is now a server component that reads `searchParams` directly — no client state, no desync possible. `StoreSearch` pushes to the URL with a 500ms debounce; the server re-fetches and re-renders on each URL change.
+
+---
+
+## 10. Cart Quantity Stale Closure in Batched Calls
+**Why:**
+After migrating the cart from `localStorage` to server actions with optimistic `setState`, the cart hook captured `cartItems` in a `useCallback` closure. When two `addToCart` calls fired in the same React batch (e.g., inside a single `act()` in tests), both calls saw the same stale `cartItems = []` value and the second call produced `quantity: 1` instead of `2`.
+
+**The Problem:**
+The `optimistic` helper computed `next` based on the captured `cartItems` at the time of the `useCallback` definition, not at the time of the `setState` call.
+
+**The Solution:**
+Replaced the `optimistic` helper and pre-computed `next` approach with **functional `setState` updates**: `setCartItems(prev => ...)`. Each call in a batch now receives the current state from React's update queue, not the stale closure. The `useCallback` wrapper was removed entirely.
+
+---
+
+## 11. E2E Cart Quantity Race Condition on Hard Navigation
+**Why:**
+After clicking "Add to Cart", the test immediately called `page.goto('/en/cart')`. This is a hard browser navigation — Next.js re-renders the layout server-side, calling `getCart(lang)` which reads the `cart` cookie. If the `addToCartAction` server action hadn't finished writing the updated cookie yet, the layout read the stale quantity.
+
+**The Problem:**
+The test expected `quantity: 2` on the cart page but saw `quantity: 1` because the server-side cookie read raced ahead of the async server action.
+
+**The Solution:**
+Changed the test to click the **navbar cart link** instead of calling `page.goto('/en/cart')`. Clicking the link triggers a client-side navigation, which preserves the `CartProvider`'s optimistic state (already updated to `quantity: 2`) without re-reading the server cookie.
+
+---
+
+## 12. E2E Language Dropdown — `<button>` vs `<a>` Selector
+**Why:**
+The language dropdown in `NavbarClient` renders both language options as `<button>` elements (using `onClick` → `router.push`). The original E2E test used `a:has-text("Indonesian")` which matched zero elements.
+
+**The Problem:**
+`page.click('a:has-text("Indonesian")')` timed out because the element is a `<button>`, not an `<a>`.
+
+**The Solution:**
+Updated the test selector to `button:has-text("Indonesian")`. Also tightened the language trigger selector from `button:has-text("LANG: en")` to `button:has-text("en")` because "LANG:" is inside a `hidden xs:inline` span and may not be visible at all viewport sizes.

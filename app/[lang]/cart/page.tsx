@@ -26,10 +26,10 @@ export default function CartPage() {
         ) : (
           <div className="flex flex-col lg:flex-row gap-8">
             <div className="grow flex flex-col gap-4">
-               {cartItems.map((item, index) => {
+               {cartItems.map((item) => {
                  const price = item.discount ? item.price * (1 - item.discount / 100) : item.price;
                  return (
-                   <div key={`${item.id}-${index}`} className="bg-steam-darkest/40 p-4 rounded flex gap-6 items-center border border-white/5 group hover:bg-steam-darkest/60 transition-all">
+                   <div key={item.id} className="bg-steam-darkest/40 p-4 rounded flex gap-6 items-center border border-white/5 group hover:bg-steam-darkest/60 transition-all">
                       <Link href={`/${language}/game/${item.id}`} className="relative w-32 h-20 shrink-0 overflow-hidden rounded">
                         <Image
                           src={item.imageUrl}

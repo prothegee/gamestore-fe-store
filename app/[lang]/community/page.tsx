@@ -1,10 +1,9 @@
-'use client';
-
 import { Container } from '@/components/Container';
-import { useI18n } from '@/lib/i18n/i18n-context';
+import { getTranslations } from '@/lib/i18n/get-translations';
 
-export default function CommunityPage() {
-  const { t } = useI18n();
+export default async function CommunityPage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
+  const { t } = getTranslations(lang);
 
   return (
     <div className="py-20">

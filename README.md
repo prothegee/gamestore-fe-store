@@ -7,13 +7,16 @@ A modern, high-performance Game Store frontend built with Next.js 16 (App Router
 ## Key Features
 
 - **Steam-Inspired UI:** High-fidelity dark theme with responsive layouts for desktop and mobile.
-- **Internationalization (I18n):** Full support for English (en) and Bahasa Indonesia (id) using language-prefixed routing (/{lang}/).
+- **Internationalization (I18n):** Full support for English (en) and Bahasa Indonesia (id) using language-prefixed routing (`/{lang}/`).
 - **Infinite Store Catalog:** 100+ unique procedurally generated game entries with localized metadata.
-- **Smart Search:** Debounced case-insensitive search filtering across titles and tags.
-- **Lazy Loading:** Performance-optimized infinite scroll implementation using `IntersectionObserver`.
-- **Dynamic Routing:** Server-side proxy for language normalization and SEO-friendly URLs.
+- **Smart Search:** Debounced, client-side search filtering across titles and tags.
+- **Lazy Loading:** Performance-optimized infinite scroll implementation on the store page using `IntersectionObserver`.
+- **Hybrid Rendering:** Mix of async server components for core pages and 'use client' for interactive islands and the infinite-scroll store.
+- **Secure Session:** Auth managed via HTTP-only-style cookie, read server-side on every request.
+- **Server-Side Cart:** Cart persisted in a signed cookie, hydrated server-side on layout load, updated via server actions with optimistic client-side feedback.
+- **Optimistic UI:** Cart mutations apply instantly on the client and call server actions in the background.
+- **Client-Side Form Validation:** Login and register forms validate fields before the server action fires, with inline error messages.
 - **Image Optimization:** Utilizes `next/image` with remote patterns for high-performance localized asset delivery.
-- **Shopping Cart:** Persistent cart management using LocalStorage and custom React hooks.
 - **Mock Integration:** Ready-to-use mock API layer for account management, product catalogs, and checkout flows.
 - **Environment Management:** Multi-environment support (debug, staging, prod) via unified environment variables.
 
@@ -24,15 +27,15 @@ A modern, high-performance Game Store frontend built with Next.js 16 (App Router
 - **Framework:** [Next.js 16](https://nextjs.org/) (App Router, Turbopack)
 - **Library:** [React 19](https://react.dev/)
 - **Styling:** [Tailwind CSS 4](https://tailwindcss.com/)
-- **Testing:** [Vitest](https://vitest.dev/)
-- **State Management:** React Context & Custom Hooks
+- **Testing:** [Vitest](https://vitest.dev/) + [Playwright](https://playwright.dev/)
+- **State Management:** React Context + Server Actions + Optimistic UI
 - **Runtime:** [Bun](https://bun.sh/) (Recommended) or Node.js
 
 <br>
 
 ## Documentation
 
-Detailed technical documentation is available in the docs/ directory:
+Detailed technical documentation is available in the `docs/` directory:
 
 <br>
 
@@ -40,19 +43,20 @@ Detailed technical documentation is available in the docs/ directory:
 - **[Project Overview](docs/PROJECT.md):** High-level goals, core mandates, and project structure.
 - **[High-Level Design (HLD)](docs/HLD.md):** System architecture, routing flows, and service integration.
 - **[Low-Level Design (LLD)](docs/LLD.md):** Path definitions, component mapping, and API logic.
-- **[Hybrid Architecture](docs/HYBRID-ARCHITECTURE.md):** Detailed breakdown of SSR, SSG, and CSR integration.
+- **[Hybrid Architecture](docs/HYBRID-ARCHITECTURE.md):** Detailed breakdown of the server-first hybrid strategy (SSR + streaming + client islands).
 
 <br>
 
 ### Feature Specifications
 - **[Authentication](docs/AUTH.md):** User registration, login lifecycle, and profile management.
 - **[Internationalization](docs/I18N.md):** Implementation details for multi-language support.
-- **[Store & Checkout](docs/STORE.md):** Game browsing, cart logic, and purchase flows.
+- **[Store & Checkout](docs/STORE.md):** Game browsing, server-side cart, and purchase flows.
 
 <br>
 
 ### Exceptions & Compatibility
 - **[Exceptions](docs/EXCEPTIONS.md):** Known third-party extension conflicts and workarounds.
+- **[Importants](docs/IMPORTANTS.md):** Critical development notes and troubleshooting history.
 
 <br>
 
@@ -64,7 +68,6 @@ Detailed technical documentation is available in the docs/ directory:
 
 ### CI/CD
 - **[Format on Merge](.github/workflows/format-on-merge.yml):** Auto-formats code with ESLint on every merge to `main`.
-- **[Exceptions](docs/EXCEPTIONS.md):** Known third-party extension conflicts and linting workarounds.
 
 <br>
 
@@ -93,36 +96,57 @@ Detailed technical documentation is available in the docs/ directory:
 ```bash
 bun dev
 ```
-Open [http://localhost:9007](http://localhost:9007) (configured via PORT in .env) to see the result.
+Open [http://localhost:9007](http://localhost:9007) to see the result.
 
 ### Running Tests
-Detailed instructions available in the [Vite](docs/TEST-VITE.md) and [Playwright](docs/TEST-PLAYWRIGHT.md) documentation.
+Detailed instructions available in the [Vitest](docs/TEST-VITE.md) and [Playwright](docs/TEST-PLAYWRIGHT.md) documentation.
 
 ```bash
-bun run test        # Run unit tests
-bun run test:e2e    # Run all E2E tests (Cross-browser)
+bun run test              # Run unit tests (Vitest)
+bun run test:e2e          # Run all E2E tests (cross-browser)
+bun run test:e2e --project=chromium   # Chromium only
+bun run test:e2e --project=firefox    # Firefox only
 ```
 
 <br>
 
 ## Project Structure
 ```text
-├── app/              # Next.js App Router (Localized pages)
-├── components/       # Shared UI components
-├── docs/             # Technical documentation & ADRs
+├── app/                  # Next.js App Router (localized pages)
+│   └── [lang]/
+│       ├── layout.tsx    # Server layout — reads session + cart from cookies
+│       ├── store/        # Store page with Suspense streaming
+│       ├── game/[id]/    # Game detail — AddToCartButton (client island)
+│       ├── login/        # Server page + LoginForm (client validation)
+│       ├── register/     # Server page + RegisterForm (client validation)
+│       ├── cart/         # Cart page (client — reads CartProvider)
+│       ├── checkout/     # Checkout page (client)
+│       └── profile/      # Server page — server-side auth guard
+├── components/           # Shared UI components (Navbar, GameCard, etc.)
+├── docs/                 # Technical documentation & ADRs
 ├── lib/
-│   ├── api/          # API services & mock data
-│   ├── hooks/        # Custom React hooks (Cart, etc.)
-│   └── i18n/         # Localization logic
-├── public/           # Static assets
-└── tests/            # Vitest test suite
+│   ├── api/
+│   │   ├── account.ts    # Auth server actions (login, logout, getSession)
+│   │   ├── cart.ts       # Cart server actions (getCart, addToCartAction, …)
+│   │   ├── auth-context.tsx  # AuthProvider (client)
+│   │   └── dummy-data.ts # Mock game catalog
+│   ├── hooks/
+│   │   └── useCart.tsx   # CartProvider — optimistic state + server actions
+│   └── i18n/             # Localization (translations, context, server util)
+├── public/               # Static assets
+└── tests/
+    ├── cart.test.tsx     # useCart hook unit tests
+    ├── i18n.test.ts      # Translation key parity tests
+    ├── setup.ts          # jsdom mocks (next/navigation, next/headers)
+    └── e2e/
+        └── store.spec.ts # Playwright full-flow E2E tests
 ```
 
 <br>
 
 ## Notes
 
-See [.TODO.md](.TODO.md) for core task.
+See [.TODO.md](.TODO.md) for remaining tasks.
 
 <!-- RESERVED: CHANGELOG.md -->
 
