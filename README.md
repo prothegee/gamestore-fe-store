@@ -152,6 +152,16 @@ See [.TODO.md](.TODO.md) for remaining tasks.
 
 <br>
 
+## Preview/Screeshot
+
+![](docs/img/ss-20260417-160849.png)
+![](docs/img/ss-20260417-161318.png)
+![](docs/img/ss-20260417-162519.png)
+![](docs/img/ss-20260417-162644.png)
+![](docs/img/ss-20260417-163335.png)
+
+<br>
+
 ---
 
 ###### end of readme
