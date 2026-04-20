@@ -21,6 +21,8 @@ GameStore Frontend (Next.js 16 App Router)
 
 A modern, high-performance Game Store frontend built with Next.js 16 (App Router), mimicking the iconic Steam Store aesthetic and functionality.
 
+For live demo, visit: https://dm-gmstr.prothegee.dev/
+
 <br>
 
 ## Key Features
